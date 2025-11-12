@@ -1,48 +1,50 @@
 """
-Database Schemas
+Database Schemas for Finanalyzer
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection (lowercased class name).
 """
-
 from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
+from typing import Optional, List, Dict, Any
+from datetime import datetime
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    email: str = Field(..., description="Unique email for magic link login")
+    name: Optional[str] = Field(None)
+    plan: str = Field("free", description="free | paid")
+    last_login_at: Optional[datetime] = None
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class MagicToken(BaseModel):
+    email: str
+    token: str
+    expires_at: datetime
+    used: bool = False
 
-# Add your own schemas here:
-# --------------------------------------------------
+class File(BaseModel):
+    user_email: str
+    filename: str
+    content_type: str = "application/pdf"
+    size_bytes: int
+    storage_path: str = Field(..., description="Encrypted blob path")
+    uploaded_at: datetime
+    status: str = Field("uploaded", description="uploaded | processing | analyzed | failed")
+    last_queried_at: Optional[datetime] = None
+    fiscal_year: Optional[str] = None
+    doc_type: Optional[str] = Field(None, description="balance_sheet | p_and_l | cash_flow | mixed | unknown")
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Analysis(BaseModel):
+    user_email: str
+    file_id: str
+    health_score: float
+    trends: Dict[str, Any]
+    projections_1y: Dict[str, Any]
+    projections_5y: Dict[str, Any]
+    recommendations: List[str]
+    risks: List[str]
+    created_at: datetime
+
+class ChatMessage(BaseModel):
+    user_email: str
+    file_id: str
+    role: str = Field(..., description="user | assistant | system")
+    content: str
+    created_at: datetime
